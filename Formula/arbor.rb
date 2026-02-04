@@ -1,26 +1,26 @@
 class Arbor < Formula
   desc "Git worktree manager for Laravel projects"
   homepage "https://github.com/artisanexperiences/arbor"
-  version "0.9.4"
+  version "0.9.5"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/artisanexperiences/arbor/releases/download/v0.9.4/arbor-0.9.4-darwin_arm64.tar.gz"
-      sha256 "04c2dfdd09cf3757ac34bc3b982fce38e73d094c961b0c0cf67423b01e543235"
+      url "https://github.com/artisanexperiences/arbor/releases/download/v0.9.5/arbor-0.9.5-darwin_arm64.tar.gz"
+      sha256 "e733c248b1efc56a03a9929d712bb7b0432d60edb9948ad7ea013639f639c2b1"
     else
-      url "https://github.com/artisanexperiences/arbor/releases/download/v0.9.4/arbor-0.9.4-darwin_amd64.tar.gz"
-      sha256 "31f149ff874640dc56992d990c37a7e87d7fe942ec573d58de2d87e3b3973694"
+      url "https://github.com/artisanexperiences/arbor/releases/download/v0.9.5/arbor-0.9.5-darwin_amd64.tar.gz"
+      sha256 "a2f4bfa9b030fd6c33eaaecf0aab5c74c8710cbbf8403bfde19a73901fbb3e49"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/artisanexperiences/arbor/releases/download/v0.9.4/arbor-0.9.4-linux_arm64.tar.gz"
-      sha256 "0cad5b03906a5a490741a34d9456de32d4c9d604cf358ff68f995c19e75dcc5f"
+      url "https://github.com/artisanexperiences/arbor/releases/download/v0.9.5/arbor-0.9.5-linux_arm64.tar.gz"
+      sha256 "38f21f7f78116886cd9de573e5a4419f207a164839c6ba74a0ff4eea068cda2e"
     else
-      url "https://github.com/artisanexperiences/arbor/releases/download/v0.9.4/arbor-0.9.4-linux_amd64.tar.gz"
-      sha256 "05a818b0df7c60e5248a80c54b9449435f4afcae3ebb648ea165599d7630f487"
+      url "https://github.com/artisanexperiences/arbor/releases/download/v0.9.5/arbor-0.9.5-linux_amd64.tar.gz"
+      sha256 "3ab614a59bccda842c9225741672d0d5042ec56240cf23099a48d4fed69d03c8"
     end
   end
 
