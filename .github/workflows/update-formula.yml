@@ -82,6 +82,9 @@ jobs:
           # Update repository references
           sed -i "s|github.com/[^/]*/arbor|github.com/${REPOSITORY}|g" Formula/arbor.rb
           
+          # Update version tags in download URLs
+          sed -i "s|/releases/download/v[0-9.]*/|/releases/download/v${VERSION}/|g" Formula/arbor.rb
+          
           # Update URLs and checksums for macOS arm64
           sed -i "s|arbor-[0-9.]*-darwin_arm64.tar.gz|arbor-${VERSION}-darwin_arm64.tar.gz|g" Formula/arbor.rb
           sed -i "/darwin_arm64.tar.gz/!b; n; s/sha256 \".*\"/sha256 \"${{ steps.checksums.outputs.DARWIN_ARM64_SHA }}\"/" Formula/arbor.rb
