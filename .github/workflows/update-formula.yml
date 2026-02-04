@@ -76,57 +76,33 @@ jobs:
           VERSION="${{ steps.release.outputs.VERSION }}"
           REPOSITORY="${{ steps.release.outputs.REPOSITORY }}"
           
-          # Create Formula directory if it doesn't exist
-          mkdir -p Formula
+          # Update version
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/arbor.rb
           
-          # Generate the formula file
-          cat > Formula/arbor.rb << 'FORMULA'
-class Arbor < Formula
-  desc "Git worktree manager for Laravel projects"
-  homepage "https://github.com/REPOSITORY_PLACEHOLDER"
-  version "VERSION_PLACEHOLDER"
-  license "MIT"
-
-  on_macos do
-    if Hardware::CPU.arm?
-      url "https://github.com/REPOSITORY_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/arbor-VERSION_PLACEHOLDER-darwin_arm64.tar.gz"
-      sha256 "DARWIN_ARM64_SHA_PLACEHOLDER"
-    else
-      url "https://github.com/REPOSITORY_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/arbor-VERSION_PLACEHOLDER-darwin_amd64.tar.gz"
-      sha256 "DARWIN_AMD64_SHA_PLACEHOLDER"
-    end
-  end
-
-  on_linux do
-    if Hardware::CPU.arm?
-      url "https://github.com/REPOSITORY_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/arbor-VERSION_PLACEHOLDER-linux_arm64.tar.gz"
-      sha256 "LINUX_ARM64_SHA_PLACEHOLDER"
-    else
-      url "https://github.com/REPOSITORY_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/arbor-VERSION_PLACEHOLDER-linux_amd64.tar.gz"
-      sha256 "LINUX_AMD64_SHA_PLACEHOLDER"
-    end
-  end
-
-  def install
-    bin.install "arbor-#{version}-darwin_arm64" => "arbor" if OS.mac? && Hardware::CPU.arm?
-    bin.install "arbor-#{version}-darwin_amd64" => "arbor" if OS.mac? && Hardware::CPU.intel?
-    bin.install "arbor-#{version}-linux_arm64" => "arbor" if OS.linux? && Hardware::CPU.arm?
-    bin.install "arbor-#{version}-linux_amd64" => "arbor" if OS.linux? && Hardware::CPU.intel?
-  end
-
-  test do
-    assert_match version.to_s, shell_output("#{bin}/arbor version")
-  end
-end
-FORMULA
-
-          # Replace placeholders
-          sed -i "s|REPOSITORY_PLACEHOLDER|${REPOSITORY}|g" Formula/arbor.rb
-          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" Formula/arbor.rb
-          sed -i "s/DARWIN_AMD64_SHA_PLACEHOLDER/${{ steps.checksums.outputs.DARWIN_AMD64_SHA }}/g" Formula/arbor.rb
-          sed -i "s/DARWIN_ARM64_SHA_PLACEHOLDER/${{ steps.checksums.outputs.DARWIN_ARM64_SHA }}/g" Formula/arbor.rb
-          sed -i "s/LINUX_AMD64_SHA_PLACEHOLDER/${{ steps.checksums.outputs.LINUX_AMD64_SHA }}/g" Formula/arbor.rb
-          sed -i "s/LINUX_ARM64_SHA_PLACEHOLDER/${{ steps.checksums.outputs.LINUX_ARM64_SHA }}/g" Formula/arbor.rb
+          # Update repository references
+          sed -i "s|github.com/[^/]*/arbor|github.com/${REPOSITORY}|g" Formula/arbor.rb
+          
+          # Update URLs and checksums for macOS arm64
+          sed -i "s|arbor-[0-9.]*-darwin_arm64.tar.gz|arbor-${VERSION}-darwin_arm64.tar.gz|g" Formula/arbor.rb
+          sed -i "/darwin_arm64.tar.gz/!b; n; s/sha256 \".*\"/sha256 \"${{ steps.checksums.outputs.DARWIN_ARM64_SHA }}\"/" Formula/arbor.rb
+          
+          # Update URLs and checksums for macOS amd64
+          sed -i "s|arbor-[0-9.]*-darwin_amd64.tar.gz|arbor-${VERSION}-darwin_amd64.tar.gz|g" Formula/arbor.rb
+          sed -i "/darwin_amd64.tar.gz/!b; n; s/sha256 \".*\"/sha256 \"${{ steps.checksums.outputs.DARWIN_AMD64_SHA }}\"/" Formula/arbor.rb
+          
+          # Update URLs and checksums for Linux arm64
+          sed -i "s|arbor-[0-9.]*-linux_arm64.tar.gz|arbor-${VERSION}-linux_arm64.tar.gz|g" Formula/arbor.rb
+          sed -i "/linux_arm64.tar.gz/!b; n; s/sha256 \".*\"/sha256 \"${{ steps.checksums.outputs.LINUX_ARM64_SHA }}\"/" Formula/arbor.rb
+          
+          # Update URLs and checksums for Linux amd64
+          sed -i "s|arbor-[0-9.]*-linux_amd64.tar.gz|arbor-${VERSION}-linux_amd64.tar.gz|g" Formula/arbor.rb
+          sed -i "/linux_amd64.tar.gz/!b; n; s/sha256 \".*\"/sha256 \"${{ steps.checksums.outputs.LINUX_AMD64_SHA }}\"/" Formula/arbor.rb
+          
+          # Update binary names in install block
+          sed -i "s/arbor-[0-9.]*-darwin_arm64/arbor-${VERSION}-darwin_arm64/g" Formula/arbor.rb
+          sed -i "s/arbor-[0-9.]*-darwin_amd64/arbor-${VERSION}-darwin_amd64/g" Formula/arbor.rb
+          sed -i "s/arbor-[0-9.]*-linux_arm64/arbor-${VERSION}-linux_arm64/g" Formula/arbor.rb
+          sed -i "s/arbor-[0-9.]*-linux_amd64/arbor-${VERSION}-linux_amd64/g" Formula/arbor.rb
 
       - name: Commit and push formula
         run: |
