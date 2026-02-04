@@ -1,0 +1,140 @@
+name: Update Homebrew Formula
+
+on:
+  repository_dispatch:
+    types: [update-formula]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update (e.g., 0.9.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update-formula:
+    name: Update Homebrew Formula
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get release information
+        id: release
+        run: |
+          # Handle workflow_dispatch or repository_dispatch event
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            REPOSITORY="artisanexperiences/arbor"
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            VERSION="${{ github.event.client_payload.version }}"
+            REPOSITORY="${{ github.event.client_payload.repository }}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "REPOSITORY=$REPOSITORY" >> $GITHUB_OUTPUT
+          echo "Updating formula to version: $VERSION from repository: $REPOSITORY"
+
+      - name: Download release archives
+        run: |
+          VERSION="${{ steps.release.outputs.VERSION }}"
+          REPOSITORY="${{ steps.release.outputs.REPOSITORY }}"
+          mkdir -p downloads
+          cd downloads
+          
+          # Download all 4 platform archives
+          curl -sL "https://github.com/${REPOSITORY}/releases/download/v${VERSION}/arbor-${VERSION}-darwin_amd64.tar.gz" -o darwin_amd64.tar.gz
+          curl -sL "https://github.com/${REPOSITORY}/releases/download/v${VERSION}/arbor-${VERSION}-darwin_arm64.tar.gz" -o darwin_arm64.tar.gz
+          curl -sL "https://github.com/${REPOSITORY}/releases/download/v${VERSION}/arbor-${VERSION}-linux_amd64.tar.gz" -o linux_amd64.tar.gz
+          curl -sL "https://github.com/${REPOSITORY}/releases/download/v${VERSION}/arbor-${VERSION}-linux_arm64.tar.gz" -o linux_arm64.tar.gz
+
+      - name: Calculate SHA256 checksums
+        id: checksums
+        run: |
+          cd downloads
+          
+          # Calculate SHA256 for each archive
+          DARWIN_AMD64_SHA=$(sha256sum darwin_amd64.tar.gz | awk '{print $1}')
+          DARWIN_ARM64_SHA=$(sha256sum darwin_arm64.tar.gz | awk '{print $1}')
+          LINUX_AMD64_SHA=$(sha256sum linux_amd64.tar.gz | awk '{print $1}')
+          LINUX_ARM64_SHA=$(sha256sum linux_arm64.tar.gz | awk '{print $1}')
+          
+          echo "DARWIN_AMD64_SHA=$DARWIN_AMD64_SHA" >> $GITHUB_OUTPUT
+          echo "DARWIN_ARM64_SHA=$DARWIN_ARM64_SHA" >> $GITHUB_OUTPUT
+          echo "LINUX_AMD64_SHA=$LINUX_AMD64_SHA" >> $GITHUB_OUTPUT
+          echo "LINUX_ARM64_SHA=$LINUX_ARM64_SHA" >> $GITHUB_OUTPUT
+          
+          echo "Checksums calculated:"
+          echo "darwin_amd64: $DARWIN_AMD64_SHA"
+          echo "darwin_arm64: $DARWIN_ARM64_SHA"
+          echo "linux_amd64: $LINUX_AMD64_SHA"
+          echo "linux_arm64: $LINUX_ARM64_SHA"
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+
+      - name: Update formula
+        run: |
+          VERSION="${{ steps.release.outputs.VERSION }}"
+          REPOSITORY="${{ steps.release.outputs.REPOSITORY }}"
+          
+          # Create Formula directory if it doesn't exist
+          mkdir -p Formula
+          
+          # Generate the formula file
+          cat > Formula/arbor.rb << 'FORMULA'
+class Arbor < Formula
+  desc "Git worktree manager for Laravel projects"
+  homepage "https://github.com/REPOSITORY_PLACEHOLDER"
+  version "VERSION_PLACEHOLDER"
+  license "MIT"
+
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/REPOSITORY_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/arbor-VERSION_PLACEHOLDER-darwin_arm64.tar.gz"
+      sha256 "DARWIN_ARM64_SHA_PLACEHOLDER"
+    else
+      url "https://github.com/REPOSITORY_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/arbor-VERSION_PLACEHOLDER-darwin_amd64.tar.gz"
+      sha256 "DARWIN_AMD64_SHA_PLACEHOLDER"
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.arm?
+      url "https://github.com/REPOSITORY_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/arbor-VERSION_PLACEHOLDER-linux_arm64.tar.gz"
+      sha256 "LINUX_ARM64_SHA_PLACEHOLDER"
+    else
+      url "https://github.com/REPOSITORY_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/arbor-VERSION_PLACEHOLDER-linux_amd64.tar.gz"
+      sha256 "LINUX_AMD64_SHA_PLACEHOLDER"
+    end
+  end
+
+  def install
+    bin.install "arbor-#{version}-darwin_arm64" => "arbor" if OS.mac? && Hardware::CPU.arm?
+    bin.install "arbor-#{version}-darwin_amd64" => "arbor" if OS.mac? && Hardware::CPU.intel?
+    bin.install "arbor-#{version}-linux_arm64" => "arbor" if OS.linux? && Hardware::CPU.arm?
+    bin.install "arbor-#{version}-linux_amd64" => "arbor" if OS.linux? && Hardware::CPU.intel?
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/arbor version")
+  end
+end
+FORMULA
+
+          # Replace placeholders
+          sed -i "s|REPOSITORY_PLACEHOLDER|${REPOSITORY}|g" Formula/arbor.rb
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" Formula/arbor.rb
+          sed -i "s/DARWIN_AMD64_SHA_PLACEHOLDER/${{ steps.checksums.outputs.DARWIN_AMD64_SHA }}/g" Formula/arbor.rb
+          sed -i "s/DARWIN_ARM64_SHA_PLACEHOLDER/${{ steps.checksums.outputs.DARWIN_ARM64_SHA }}/g" Formula/arbor.rb
+          sed -i "s/LINUX_AMD64_SHA_PLACEHOLDER/${{ steps.checksums.outputs.LINUX_AMD64_SHA }}/g" Formula/arbor.rb
+          sed -i "s/LINUX_ARM64_SHA_PLACEHOLDER/${{ steps.checksums.outputs.LINUX_ARM64_SHA }}/g" Formula/arbor.rb
+
+      - name: Commit and push formula
+        run: |
+          VERSION="${{ steps.release.outputs.VERSION }}"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add Formula/arbor.rb
+          git commit -m "Update arbor to ${VERSION}"
+          git push
